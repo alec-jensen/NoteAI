@@ -267,3 +267,18 @@ async def generate(current_user: Annotated[User, Depends(get_current_active_user
         questions.append(res.choices[0]['message']['content'])
 
     return {"questions": questions}
+
+@app.get("/answer")
+async def answer(current_user: Annotated[User, Depends(get_current_active_user)], question: str, answer: str):
+    res = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            max_tokens=100,
+            temperature=0.5,
+            messages=[
+                {"role": "system", "content": "Say whether the following answer is correct or incorrect. If incorrect, briefly explain why."},
+                {"role": "assistant", "content": f"Question: {question}"},
+                {"role": "system", "content": f"Answer: {answer}"},
+            ]
+        )
+    
+    return {"answer": res.choices[0]['message']['content']}
