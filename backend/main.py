@@ -10,10 +10,11 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 import openai
 from database import db
+from conf import API_KEY
 
 # the school blocks openai, so we need to use a proxy
 openai.proxy = "socks5://debian-socks5-proxy.at.remote.it:33000"
-openai.api_key = "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"
+openai.api_key = API_KEY
 
 # to get a string like this run:
 # openssl rand -hex 32
@@ -112,7 +113,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
+        username: str = payload.get("sub") 
         if username is None:
             raise credentials_exception
         token_data = TokenData(username=username)
@@ -260,4 +261,4 @@ async def answer(current_user: Annotated[User, Depends(get_current_active_user)]
             ]
         )
     
-    return {"answer": res.choices[0]['message']['content']}
+    return {"answer": res.choices[0]['message']['content'][:2]}
