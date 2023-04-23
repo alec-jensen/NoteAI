@@ -204,6 +204,8 @@ async def read_own_items(current_user: Annotated[User, Depends(get_current_activ
 
 @app.post("/users/me/notes/add")
 async def add_note(current_user: Annotated[User, Depends(get_current_active_user)], body: NoteBody):
+    if body.name == "":
+        return
     if await db.note_exists(current_user.username, body.name):
         await db.update_note(current_user.username, body.name, body.content)
     else:
@@ -246,7 +248,7 @@ async def generate(current_user: Annotated[User, Depends(get_current_active_user
     )
     questions = re.sub(r'\n+', '\n', res.choices[0]['message']['content']).splitlines()
 
-    return {"questions": questions}
+    return {"questions": questions[:2]}
 
 @app.get("/answer")
 async def answer(current_user: Annotated[User, Depends(get_current_active_user)], question: str, answer: str):
@@ -261,4 +263,4 @@ async def answer(current_user: Annotated[User, Depends(get_current_active_user)]
             ]
         )
     
-    return {"answer": res.choices[0]['message']['content'][:2]}
+    return {"answer": res.choices[0]['message']['content']}
