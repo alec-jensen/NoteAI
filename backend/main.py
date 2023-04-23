@@ -158,6 +158,11 @@ async def signup(body: SignupBody):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Username already exists",
         )
+    if await db.user_exists(body.username):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username already exists",
+        )
     if await db.email_taken(body.email):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -169,13 +174,7 @@ async def signup(body: SignupBody):
             detail="Invalid email",
         )
 
-    await db.add_user(body.username, body.email, body.full_name, await get_password_hash(body.password))
-
-    if await db.get_user_info(body.username) == {}:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already in use",
-        )
+    await db.create_user(body.username, body.email, body.full_name, await get_password_hash(body.password))
 
     user = await authenticate_user(body.username, body.password)
     if not user:
