@@ -77,7 +77,7 @@
 			}).then((json) => {
 				console.log(json["access_token"]);
 				setCookie("token", json["access_token"], 1);
-				document.location = "./app";
+				document.location = "/app";
 			})
 			.catch((err) => err.text().then(errormsg => Promise.reject(alert(errormsg))));
 			return false;

@@ -40,7 +40,9 @@
             </div>
         </div>
         
-        <script>
+        <script defer>
+            var name = ""
+            var note = ""
             function getCookie(cname) {
                 let name = cname + "=";
                 let decodedCookie = decodeURIComponent(document.cookie);
@@ -58,20 +60,72 @@
             }
             
             const token = getCookie("token");
-
-            function checkAnswers() {
-                
-            }
             
-            function generateQuestions() {
-                document.getElementById('questions').innerHTML = ''
-                const note = document.getElementById('editor').value
-                fetch("http://10.75.67.5:8000/generate?note=" + note, {
+            function checkAnswers() {
+                for (question of document.getElementById('questions').children) {
+                        fetch("http://10.75.67.5:8000/answer?question=" + question.children[0].children[0].innerText + "&answer=" + question.children[0].children[1].innerText, {
+                            "headers": {
+                                "accept": "application/json",
+                                "accept-language": "en-US,en;q=0.9",
+                                "authorization": "Bearer " + token
+                            },
+                            "body": null,
+                            "method": "GET"
+                        }).then((response) => {
+                            if (response.ok) {
+                                return response.json()
+                            } else {
+                                throw response;
+                            }
+                        }).then((json) => {
+                                console.log(json);
+                                console.log(question.tagName);
+                                question.children[0].innerHTML += "<h6 class='card-correct-answer'>" + json["answer"] + "</h6>";
+                            })
+                        }
+                }
+                
+                function generateQuestions() {
+                    let questions = document.getElementById('questions');
+                    while (questions.firstChild) {
+                        questions.removeChild(questions.firstChild);
+                    }
+                    if (document.getElementById('check-answers')) {
+                        document.getElementById('check-answers').remove();
+                    }
+
+                    const note = document.getElementById('editor').value
+                    fetch("http://10.75.67.5:8000/generate?note=" + note, {
+                        "headers": {
+                            "accept": "application/json",
+                            "accept-language": "en-US,en;q=0.9",
+                            "authorization": "Bearer " + token
+                        },
+                        "body": null,
+                        "method": "GET"
+                    }).then((response) => {
+                        if (response.ok) {
+                            return response.json()
+                        } else {
+                            throw response;
+                        }
+                    }).then((json) => {
+                        console.log(json);
+                        for (const res in json['questions']) {
+                            document.getElementById('questions').innerHTML += "<div class='card w-100 m-4'><div class='card-body'><h5 class='card-title'>" + json['questions'][res] + "</h5>" + "<input type='text' name='answerBox'></div></div>"
+                        }
+                        document.getElementById('questions').parentElement.innerHTML += "<button type='text' id='check-answers' class='btn-primary' style='position:relative; margin-top:17%;' onclick='checkAnswers()'>Check answers and get feedback</button>"
+                    })
+                    .catch((err) => err.text().then(errormsg => Promise.reject(alert(errormsg))));
+                }
+                
+                fetch("http://10.75.67.5:8000/users/me/", {
                     "headers": {
                         "accept": "application/json",
                         "accept-language": "en-US,en;q=0.9",
                         "authorization": "Bearer " + token
                     },
+                    "referrerPolicy": "strict-origin-when-cross-origin",
                     "body": null,
                     "method": "GET"
                 }).then((response) => {
@@ -82,66 +136,60 @@
                     }
                 }).then((json) => {
                     console.log(json);
-                    for (const res in json['questions']) {
-                        document.getElementById('questions').innerHTML += "<div class='card w-100 m-4'><div class='card-body'><h5 class='card-title'>" + json['questions'][res] + "</h5><input type='text' name='answerBox'></div></div>"
-                    }
-                    document.getElementById('questions').innerHTML += "<button type='text' class='btn-primary' onclick='checkAnswers()'>Check answers and get feedback</button>"
+                    document.getElementById("placeholderUsername").innerHTML = json["username"]
+                    if (json['full_name'] != '') document.getElementById("placeholderUsername").innerHTML += " (" + json["full_name"] + ")"
                 })
                 .catch((err) => err.text().then(errormsg => Promise.reject(alert(errormsg))));
-            }
-            
-            fetch("http://10.75.67.5:8000/users/me/", {
-                "headers": {
-                    "accept": "application/json",
-                    "accept-language": "en-US,en;q=0.9",
-                    "authorization": "Bearer " + token
-                },
-                "referrerPolicy": "strict-origin-when-cross-origin",
-                "body": null,
-                "method": "GET"
-            }).then((response) => {
-                if (response.ok) {
-                    return response.json()
-                } else {
-                    throw response;
+                
+                const urlParams = new URLSearchParams(window.location.search)
+                if (urlParams.entries.hasOwnProperty("name")) {
+                    fetch("http://10.75.67.5:8000/users/me/notes/get", {
+                        "headers": {
+                            "Accept": "application/json",
+                            "Accept-Language": "en-US,en;q=0.5",
+                            "Authorization": "Bearer " + token
+                        },
+                        "referrer": "http://10.75.67.5:8000/docs",
+                        "method": "GET",
+                    }).then((response) => {
+                        if (response.ok) {
+                            return response.json()
+                        } else {
+                            throw response;
+                        }
+                    }).then((json) => {
+                        document.getElementById('editor').value = json[urlParams.get("name")]
+                        document.getElementById("title").value = urlParams.get('name')
+                    })
                 }
-            }).then((json) => {
-                console.log(json);
-                document.getElementById("placeholderUsername").innerHTML = json["username"]
-                if (json['full_name'] != '') document.getElementById("placeholderUsername").innerHTML += " (" + json["full_name"] + ")"
-            })
-            .catch((err) => err.text().then(errormsg => Promise.reject(alert(errormsg))));
-            
-            const urlParams = new URLSearchParams(window.location.search)
-            if (urlParams.entries.hasOwnProperty("name")) {
-                fetch("http://10.75.67.5:8000/users/me/notes/get", {
-                    "headers": {
-                        "Accept": "application/json",
-                        "Accept-Language": "en-US,en;q=0.5",
-                        "Authorization": "Bearer " + token
-                    },
-                    "referrer": "http://10.75.67.5:8000/docs",
-                    "method": "GET",
-                }).then((response) => {
-                    if (response.ok) {
-                        return response.json()
-                    } else {
-                        throw response;
-                    }
-                }).then((json) => {
-                    console.log(JSON.parse(json[urlParams.get("name")]))
-                    // SET editor TEXT
-                    document.getElementById("title").value = urlParams.get('name')
-                })
-            }
-            
-        </script>
-    </div>
-    <div class="container h-25 my-4">
-        <button type="text" class="btn-primary" onclick="generateQuestions()">Generate questions with AI</button>
-        <form id="questions" name="questionForm" onsubmit="return false" class="container h-25 my-4">
-
-        </form>
-    </div>
-</body>
-</html>
+                
+                setInterval(function() {
+                    fetch("http://10.75.67.5:8000/users/me/notes/add", {
+                        "headers": {
+                            "Accept": "application/json",
+                            "Authorization": "Bearer " + token,
+                            "Content-Type": "application/json",
+                        },
+                        "body": JSON.stringify({"name": document.getElementById("title").value,  "content": document.getElementById('editor').value}),
+                        "method": "POST"
+                    }).then((response) => {
+                        if (response.ok) {
+                            return response.json()
+                        } else {
+                            throw response;
+                        }
+                    }).then((json) => {
+                        console.log(json);
+                        document.getElementById("placeholderUsername").innerHTML = json["username"]
+                        if (json['full_name'] != '') document.getElementById("placeholderUsername").innerHTML += " (" + json["full_name"] + ")"})
+                    }, 4000)
+                </script>
+            </div>
+            <div class="container h-25 my-4">
+                <button type="text" class="btn-primary" onclick="generateQuestions()">Generate questions with AI</button>
+                <form id="questions" name="questionForm" onsubmit="return false" class="container h-25 my-4">
+                    
+                </form>
+            </div>
+        </body>
+        </html>
