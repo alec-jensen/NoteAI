@@ -120,11 +120,11 @@ async def get_user_info(username):
         await c.close()
         await conn.close()
         return {
-            "Username": user_info[0],
-            "Email": user_info[1],
-            "FullName": user_info[2],
-            "Disabled": user_info[3] == 1,
-            "Password": user_info[4],
+            "username": user_info[0],
+            "email": user_info[1],
+            "full_name": user_info[2],
+            "disabled": user_info[3] == 1,
+            "hashed_password": user_info[4],
         }
     return {}
 
@@ -260,11 +260,11 @@ if __name__ == "__main__":
             self.assertEqual(
                 await get_user_info("testuser"),
                 {
-                    "Username": "testuser",
-                    "Email": "testemail",
-                    "FullName": "testfullname",
-                    "Disabled": False,
-                    "Password": "testpassword",
+                    "username": "testuser",
+                    "email": "testemail",
+                    "fullName": "testfullname",
+                    "disabled": False,
+                    "hashed_password": "testpassword",
                 },
             )
             self.assertFalse(await is_disabled("testuser"))
