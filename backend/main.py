@@ -204,24 +204,10 @@ async def read_own_items(current_user: Annotated[User, Depends(get_current_activ
 @app.post("/users/me/notes/add")
 async def add_note(current_user: Annotated[User, Depends(get_current_active_user)], body: NoteBody):
     if await db.note_exists(current_user.username, body.name):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Note already exists",
-        )
+        await db.update_note(current_user.username, body.name, body.content)
     else:
         await db.create_note(current_user.username, body.name, body.content)
     return {"message": "Note added successfully"}
-
-@app.post("/users/me/notes/edit")
-async def edit_note(current_user: Annotated[User, Depends(get_current_active_user)], body: NoteBody):
-    if await db.note_exists(current_user.username, body.name):
-        await db.update_note(current_user.username, body.name, body.content)
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Note does not exist",
-        )
-    return {"message": "Note edited successfully"}
 
 @app.post("/users/me/notes/rename")
 async def rename_note(current_user: Annotated[User, Depends(get_current_active_user)], body: RenameNoteBody):
