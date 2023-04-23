@@ -235,22 +235,15 @@ async def delete_note(current_user: Annotated[User, Depends(get_current_active_u
 @app.get("/generate")
 async def generate(current_user: Annotated[User, Depends(get_current_active_user)], note: str, num_questions: int = 2):
     questions = []
-    if not await db.note_exists(current_user.username, note):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Note does not exist",
-        )
-    notes = await db.get_notes(current_user.username)
-    for _ in range(num_questions):
-        res = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            max_tokens=100,
-            messages=[
-                {"role": "system", "content": "Using the following notes, generate a practice question relevant to the notes."},
-                {"role": "user", "content": notes[note]},
-            ]
-        )
-        questions.append(res.choices[0]['message']['content'])
+    res = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        max_tokens=100,
+        messages=[
+            {"role": "system", "content": f"Using the following notes, generate {num_questions} practice question(s) relevant to the notes, each separated by a newline."},
+            {"role": "user", "content": note},
+        ]
+    )
+    questions = re.sub(r'\n+', '\n', res.choices[0]['message']['content']).splitlines()
 
     return {"questions": questions}
 
