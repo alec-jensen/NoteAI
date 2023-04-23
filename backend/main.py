@@ -8,6 +8,7 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 import openai
 
+# the school blocks openai, so we need to use a proxy
 openai.proxy = "socks5://debian-socks5-proxy.at.remote.it:33000"
 openai.api_key = "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"
 
