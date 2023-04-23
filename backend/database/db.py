@@ -82,6 +82,9 @@ async def add_user(username, email, full_name, password):
 
 
 async def set_disabled(username, disabled):
+    if type(disabled) is bool:
+        disabled = int(disabled)
+
     if await user_exists(username) and not await is_username_reserved(username):
         conn = await sqlite3.connect(db_filename)
         c = await conn.cursor()
