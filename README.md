@@ -1,4 +1,5 @@
 # NoteAI
+![NoteAI logo](https://github.com/alec-jensen/NoteAI/blob/main/logo/logo.svg)
 
 NoteAI is a tool designed to help students enforce what they have already learned, improving grades and helping them to learn more effectively.
 
