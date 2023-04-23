@@ -1,7 +1,7 @@
 import time
 import aiosqlite as sqlite3
 
-db_filename = "GQFYN.db"
+db_filename = "db.sqlite"
 
 
 async def is_username_reserved(username):
@@ -24,8 +24,22 @@ async def user_exists(username):
     return True
 
 
+async def email_taken(email):
+    conn = await sqlite3.connect(db_filename)
+    c = await conn.cursor()
+    await c.execute("SELECT Email FROM Accounts WHERE Email = ?", (email,))
+    if await c.fetchone() is None:
+        await c.close()
+        await conn.close()
+        return False
+    await c.close()
+    await conn.close()
+    return True
+
+
+
 async def add_user(username, email, full_name, password):
-    if not await user_exists(username):
+    if not await user_exists(username) and not await email_taken(email):
         conn = await sqlite3.connect(db_filename)
         c = await conn.cursor()
         await c.execute(
@@ -176,6 +190,8 @@ if __name__ == "__main__":
             self.assertFalse(await user_exists("testuser"))
             await add_user("testuser", "testemail", "testfullname", "testpassword")
             self.assertTrue(await user_exists("testuser"))
+            self.assertTrue(await email_taken("testemail"))
+            self.assertFalse(await email_taken("testemail1"))
             self.assertFalse(await is_disabled("testuser"))
             await set_disabled("testuser", True)
             self.assertTrue(await is_disabled("testuser"))
