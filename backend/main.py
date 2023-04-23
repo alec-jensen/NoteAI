@@ -6,12 +6,16 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
+import openai
+
+openai.proxy = "socks5://debian-socks5-proxy.at.remote.it:33000"
+openai.api_key = "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"
 
 # to get a string like this run:
 # openssl rand -hex 32
-SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
+SECRET_KEY = "cc61a5800af4cfaa3217356b03ffb032ce22a35bd4aadcaa3fba07268bd2788e"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 
 
 fake_users_db = {
@@ -106,19 +110,16 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     return user
 
 
-async def get_current_active_user(
-    current_user: Annotated[User, Depends(get_current_user)]
-):
+async def get_current_active_user(current_user: Annotated[User, Depends(get_current_user)]):
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
 
 @app.post("/token", response_model=Token)
-async def login_for_access_token(
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
-):
-    user = authenticate_user(fake_users_db, form_data.username, form_data.password)
+async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
+    user = authenticate_user(
+        fake_users_db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -133,14 +134,27 @@ async def login_for_access_token(
 
 
 @app.get("/users/me/", response_model=User)
-async def read_users_me(
-    current_user: Annotated[User, Depends(get_current_active_user)]
-):
+async def read_users_me(current_user: Annotated[User, Depends(get_current_active_user)]):
     return current_user
 
 
 @app.get("/users/me/items/")
-async def read_own_items(
-    current_user: Annotated[User, Depends(get_current_active_user)]
-):
+async def read_own_items(current_user: Annotated[User, Depends(get_current_active_user)]):
     return [{"item_id": "Foo", "owner": current_user.username}]
+
+
+@app.get("/generate")
+async def generate(current_user: Annotated[User, Depends(get_current_active_user)], notes: str, num_questions: int = 2):
+    questions = []
+    for i in range(num_questions):
+        res = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            max_tokens=100,
+            messages=[
+                {"role": "system", "content": "Using the following notes, generate a practice question relevant to the notes."},
+                {"role": "user", "content": notes},
+            ]
+        )
+        questions.append(res.choices[0]['message']['content'])
+
+    return {"questions": questions}
