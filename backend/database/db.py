@@ -1,7 +1,28 @@
+import os
 import time
 import aiosqlite as sqlite3
 
 db_filename = "db.sqlite"
+
+
+async def create_db():
+    if os.path.exists(db_filename):
+        os.remove(db_filename)
+
+    conn = await sqlite3.connect(db_filename)
+    c = await conn.cursor()
+    await c.execute(
+        """CREATE TABLE "Accounts" (
+        "Username"	TEXT NOT NULL UNIQUE,
+    "Email"	TEXT NOT NULL,
+    "FullName"	TEXT NOT NULL,
+    "Disabled"	NUMERIC NOT NULL,
+    "Password"	TEXT NOT NULL
+)"""
+    )
+    await conn.commit()
+    await c.close()
+    await conn.close()
 
 
 async def is_username_reserved(username):
@@ -37,7 +58,6 @@ async def email_taken(email):
     return True
 
 
-
 async def add_user(username, email, full_name, password):
     if not await user_exists(username) and not await email_taken(email):
         conn = await sqlite3.connect(db_filename)
@@ -48,9 +68,9 @@ async def add_user(username, email, full_name, password):
         )
         await c.execute(
             f"""CREATE TABLE "{username}" (
-	"NoteName"	TEXT NOT NULL UNIQUE,
-	"DateModified"	INTEGER NOT NULL,
-	"NoteText"	TEXT NOT NULL
+    "NoteName"	TEXT NOT NULL UNIQUE,
+    "DateModified"	INTEGER NOT NULL,
+    "NoteText"	TEXT NOT NULL
 )"""
         )
         await conn.commit()
@@ -80,6 +100,27 @@ async def is_disabled(username):
         await conn.close()
         return disabled[0] == 1
     return True
+
+
+async def get_user_info(username):
+    if await user_exists(username) and not await is_username_reserved(username):
+        conn = await sqlite3.connect(db_filename)
+        c = await conn.cursor()
+        await c.execute(
+            "SELECT * FROM Accounts WHERE Username = ?",
+            (username,),
+        )
+        user_info = await c.fetchone()
+        await c.close()
+        await conn.close()
+        return {
+            "Username": user_info[0],
+            "Email": user_info[1],
+            "FullName": user_info[2],
+            "Disabled": user_info[3] == 1,
+            "Password": user_info[4],
+        }
+    return {}
 
 
 async def remove_user(username):
@@ -186,18 +227,6 @@ if __name__ == "__main__":
     import unittest
 
     class UnitTests(unittest.IsolatedAsyncioTestCase):
-        async def test_users(self):
-            self.assertFalse(await user_exists("testuser"))
-            await add_user("testuser", "testemail", "testfullname", "testpassword")
-            self.assertTrue(await user_exists("testuser"))
-            self.assertTrue(await email_taken("testemail"))
-            self.assertFalse(await email_taken("testemail1"))
-            self.assertFalse(await is_disabled("testuser"))
-            await set_disabled("testuser", True)
-            self.assertTrue(await is_disabled("testuser"))
-            await remove_user("testuser")
-            self.assertFalse(await user_exists("testuser"))
-
         async def test_notes(self):
             await add_user("testuser", "testemail", "testfullname", "testpassword")
             self.assertFalse(await note_exists("testuser", "testnote"))
@@ -208,11 +237,34 @@ if __name__ == "__main__":
             await rename_note("testuser", "testnote", "testnote2")
             self.assertFalse(await note_exists("testuser", "testnote"))
             self.assertTrue(await note_exists("testuser", "testnote2"))
-            print(await get_notes("testuser"))
+            self.assertEqual(
+                await get_notes("testuser"),
+                {"testnote2": "testnotetext2", "testnote1": "testnotetext1"},
+            )
             await delete_note("testuser", "testnote2")
             self.assertFalse(await note_exists("testuser", "testnote2"))
             await remove_user("testuser")
 
-            print("\n")
+        async def test_users(self):
+            self.assertFalse(await user_exists("testuser"))
+            await add_user("testuser", "testemail", "testfullname", "testpassword")
+            self.assertTrue(await user_exists("testuser"))
+            self.assertTrue(await email_taken("testemail"))
+            self.assertFalse(await email_taken("testemail1"))
+            self.assertEqual(
+                await get_user_info("testuser"),
+                {
+                    "Username": "testuser",
+                    "Email": "testemail",
+                    "FullName": "testfullname",
+                    "Disabled": False,
+                    "Password": "testpassword",
+                },
+            )
+            self.assertFalse(await is_disabled("testuser"))
+            await set_disabled("testuser", True)
+            self.assertTrue(await is_disabled("testuser"))
+            await remove_user("testuser")
+            self.assertFalse(await user_exists("testuser"))
 
     unittest.main()
