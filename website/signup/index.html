@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en" style="height: 100%;">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+	<link href="https://getbootstrap.com/docs/5.3/assets/css/docs.css" rel="stylesheet">
+	<title>Sign Up for NoteAI</title>
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+	<script>
+		function getLoginToken() {
+			var username11 = document.forms["loginForm"]["username"].value;
+			var email11 = document.forms["loginForm"]["email"].value;
+			var password11 = document.forms["loginForm"]["password"].value;
+			var full_name11 = document.forms["loginForm"]["full_name"].value;
+			fetch("http://10.75.67.5:8000/signup", {
+				method: "POST",
+				body: JSON.stringify({
+					username: username11,
+					email: email11,
+					password: password11,
+					full_name: full_name11
+				}),
+				headers: {
+					"Content-type": "application/json; charset=UTF-8"
+				}
+			})
+			.then((response) => {
+				if (response.ok) {
+					setCookie("token", response.json()["access_token"], 1);
+					document.location = "/app";
+				} else {
+					throw response;
+				}
+			})
+			.catch((err) => err.text().then(errormsg => Promise.reject(alert(errormsg))));
+			return false;
+		}
+		function setCookie(cname, cvalue, exdays) {
+			const d = new Date();
+			d.setTime(d.getTime() + (exdays*24*60*60*1000));
+			let expires = "expires="+ d.toUTCString();
+			document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+		}
+	</script>
+</head>
+<body class="p-0 m-0 border-0 bd-example" style="height: 100%">
+	<nav class="navbar navbar-expand-lg bg-body-secondary fs-4" style="position: sticky; top: 0;">
+		<div class="container-fluid">
+			<a class="navbar-brand" href="#">
+				<img src="/logo.png" alt="logo" height="50">
+			</a>
+			<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+				<span class="navbar-toggler-icon"></span>
+			</button>
+			<div class="collapse navbar-collapse" id="navbarSupportedContent">
+				<ul class="navbar-nav me-auto mb-2 mb-lg-0">
+					<li class="nav-item">
+						<a class="nav-link active" aria-current="page" href="/">Home</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</nav>
+	
+	<form name="loginForm" onsubmit="return false" class="container my-5">
+		<h1 class="my-4">Sign up</h1>
+		<div class="mb-3">
+			<label for="exampleInputEmail1" class="form-label">Email address</label>
+			<input type="email" name="email" class="form-control" aria-describedby="emailHelp">
+			<div id="emailHelp" class="form-text">We'll never share your email with anyone else.</div>
+		</div>
+		<div class="mb-3">
+			<label for="exampleInputEmail1" class="form-label">Username</label>
+			<input type="text" name="username" class="form-control">
+		</div>
+		<div class="mb-3">
+			<label for="exampleInputEmail1" class="form-label">Full name</label>
+			<input type="text" name="full_name" class="form-control" aria-describedby="fullnameHelp">
+			<div id="fullnameHelp" class="form-text">Optional</div>
+		</div>
+		<div class="mb-3">
+			<label for="exampleInputPassword1" class="form-label">Password</label>
+			<input type="password" name="password" class="form-control">
+		</div>
+		<button onclick="getLoginToken()" class="btn btn-primary">Sign up</button>
+	</form>
+	
+</body>
+</html>

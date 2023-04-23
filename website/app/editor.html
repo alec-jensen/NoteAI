@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en" style="height: 100%;">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://getbootstrap.com/docs/5.3/assets/css/docs.css" rel="stylesheet">
+    <title>NoteAI | Editor</title>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+</head>
+<body class="p-0 m-0 border-0 bd-example" style="height: 100%">
+    <nav class="navbar navbar-expand-lg bg-body-secondary fs-4" style="position: sticky; top: 0; z-index: 999999;">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/app">
+                <img src="/logo.png" alt="logo" height="50">
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="/app">Notes</a>
+                    </li>
+                </ul>
+                <div class="d-flex">
+                    <p id="placeholderUsername" class="m-1 mx-3"></p>
+                    <a href="/login"><button class="m-1 btn btn-outline-danger" onclick="document.cookie = 'token=; Max-Age=0'">Log out</button></a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    
+    <div class="container h-75 my-4">
+        <input type="text" class="form-control my-4" placeholder="Note title" id="title">
+        <div id="editor">
+        </div>
+    </div>
+    
+    <div class="container h-50 my-5">
+        <button type="text" class="btn-primary my-4">Generate questions with AI</button>
+        <div id="editor">
+        </div>
+    </div>
+
+    <script>
+        function getCookie(cname) {
+            let name = cname + "=";
+            let decodedCookie = decodeURIComponent(document.cookie);
+            let ca = decodedCookie.split(';');
+            for(let i = 0; i <ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) == ' ') {
+                    c = c.substring(1);
+                }
+                if (c.indexOf(name) == 0) {
+                    return c.substring(name.length, c.length);
+                }
+            }
+            return "";
+        }
+
+        const token = getCookie("token");
+        
+        fetch("http://10.75.67.5:8000/users/me/", {
+            "headers": {
+                "accept": "application/json",
+                "accept-language": "en-US,en;q=0.9",
+                "authorization": "Bearer " + token
+            },
+            "referrerPolicy": "strict-origin-when-cross-origin",
+            "body": null,
+            "method": "GET"
+        }).then((response) => {
+            if (response.ok) {
+                return response.json()
+            } else {
+                throw response;
+            }
+        }).then((json) => {
+            console.log(json);
+            document.getElementById("placeholderUsername").innerHTML = json["username"]
+            if (json['full_name'] != '') document.getElementById("placeholderUsername").innerHTML += " (" + json["full_name"] + ")"
+        })
+        .catch((err) => err.text().then(errormsg => Promise.reject(alert(errormsg))));
+        
+        var quill = new Quill('#editor', {
+            theme: 'snow'
+        });
+        function deltaToText(Delta) {
+            var text = "";
+            Delta.ops.forEach(function (op) {
+                if (typeof op.insert === "string") {
+                    text += op.insert;
+                } else if (typeof op.retain === "string") {
+                    text += op.retain;
+                } else if (typeof op.delete === "string") {
+                    text += op.delete;
+                }
+            });
+            return text;
+        }
+        
+        quill.on("text-change", function(delta, oldDelta, source) {
+            name = document.getElementById("title").value
+            content = JSON.stringify(delta);
+            fetch("http://10.75.67.5:8000/users/me/notes/add", {
+                "headers": {
+                    "Accept": "application/json",
+                    "Authorization": "Bearer " + token,
+                    "Content-Type": "application/json",
+                },
+                "body": JSON.stringify({"name": name,  "content": content}),
+                "method": "POST"
+            }).then((response) => {
+                if (response.ok) {
+                    return response.json()
+                } else {
+                    throw response;
+                }
+            }).then((json) => {
+                console.log(json);
+                document.getElementById("placeholderUsername").innerHTML = json["username"]
+                if (json['full_name'] != '') document.getElementById("placeholderUsername").innerHTML += " (" + json["full_name"] + ")"
+            })
+            //.catch((err) => err.text().then(errormsg => Promise.reject(alert(errormsg))));
+            
+        })
+        
+        const urlParams = new URLSearchParams(window.location.search)
+        if (urlParams.entries.hasOwnProperty("name")) {
+            fetch("http://10.75.67.5:8000/users/me/notes/get", {
+                "headers": {
+                    "Accept": "application/json",
+                    "Accept-Language": "en-US,en;q=0.5",
+                    "Authorization": "Bearer " + token
+                },
+                "referrer": "http://10.75.67.5:8000/docs",
+                "method": "GET",
+            }).then((response) => {
+                if (response.ok) {
+                    return response.json()
+                } else {
+                    throw response;
+                }
+            }).then((json) => {
+                console.log(JSON.parse(json[urlParams.get("name")]))
+                quill.setContents(JSON.parse(json[urlParams.get("name")]))
+                document.getElementById("title").value = urlParams.get('name')
+            })
+        }
+        
+    </script>
+</body>
+</html>
