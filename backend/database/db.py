@@ -5,9 +5,12 @@ import aiosqlite as sqlite3
 db_filename = "db.sqlite"
 
 
-async def create_db():
+async def create_db(delete=False):
     if os.path.exists(db_filename):
-        os.remove(db_filename)
+        if delete:
+            os.remove(db_filename)
+        else:
+            return
 
     conn = await sqlite3.connect(db_filename)
     c = await conn.cursor()
