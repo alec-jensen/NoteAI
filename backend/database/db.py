@@ -61,7 +61,7 @@ async def email_taken(email):
     return True
 
 
-async def add_user(username, email, full_name, password):
+async def create_user(username, email, full_name, password):
     if not await user_exists(username) and not await email_taken(email):
         conn = await sqlite3.connect(db_filename)
         c = await conn.cursor()
@@ -234,7 +234,7 @@ if __name__ == "__main__":
 
     class UnitTests(unittest.IsolatedAsyncioTestCase):
         async def test_notes(self):
-            await add_user("testuser", "testemail", "testfullname", "testpassword")
+            await create_user("testuser", "testemail", "testfullname", "testpassword")
             self.assertFalse(await note_exists("testuser", "testnote"))
             await create_note("testuser", "testnote", "testnotetext")
             await create_note("testuser", "testnote1", "testnotetext1")
@@ -253,7 +253,7 @@ if __name__ == "__main__":
 
         async def test_users(self):
             self.assertFalse(await user_exists("testuser"))
-            await add_user("testuser", "testemail", "testfullname", "testpassword")
+            await create_user("testuser", "testemail", "testfullname", "testpassword")
             self.assertTrue(await user_exists("testuser"))
             self.assertTrue(await email_taken("testemail"))
             self.assertFalse(await email_taken("testemail1"))
