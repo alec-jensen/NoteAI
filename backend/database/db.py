@@ -13,7 +13,7 @@ async def create_db():
     c = await conn.cursor()
     await c.execute(
         """CREATE TABLE "Accounts" (
-        "Username"	TEXT NOT NULL UNIQUE,
+    "Username"	TEXT NOT NULL UNIQUE,
     "Email"	TEXT NOT NULL,
     "FullName"	TEXT NOT NULL,
     "Disabled"	NUMERIC NOT NULL,
